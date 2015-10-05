@@ -504,7 +504,7 @@ def set_sdn_facts_if_unset(facts):
         if not (use_sdn == '' or isinstance(use_sdn, bool)):
             facts['common']['use_openshift_sdn'] = bool(strtobool(str(use_sdn)))
         if 'sdn_network_plugin_name' not in facts['common']:
-            plugin = 'redhat/openshift-ovs-subnet' if use_sdn else ''
+            plugin = '' if use_sdn else ''
             facts['common']['sdn_network_plugin_name'] = plugin
 
     if 'master' in facts:
@@ -792,7 +792,7 @@ class OpenShiftFacts(object):
                            self.system_facts['fqdn']]
         hostname = choose_hostname(hostname_values, ip_addr)
 
-        common = dict(use_openshift_sdn=True, ip=ip_addr, public_ip=ip_addr,
+        common = dict(use_openshift_sdn=False, ip=ip_addr, public_ip=ip_addr,
                       deployment_type='origin', hostname=hostname,
                       public_hostname=hostname)
         common['client_binary'] = 'oc' if os.path.isfile('/usr/bin/oc') else 'osc'
