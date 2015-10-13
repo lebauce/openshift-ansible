@@ -1,0 +1,15 @@
+---
+- name: restart flanneld
+  sudo: true
+  service: name=flanneld state=restarted
+
+- name: restart docker
+  sudo: true
+  service: name=docker state=restarted
+
+- name: remove docker bridge ip
+  sudo: true
+  shell: ip a del `ip a show docker0 | grep inet | awk '{print $2}'` dev docker0
+  notify:
+    - restart docker
+    - restart node

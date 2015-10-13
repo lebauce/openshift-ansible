@@ -1,0 +1,15 @@
+---
+- name: Assures /etc/flannel dir exists
+  sudo: true
+  file: path=/etc/flannel state=directory
+
+- name: Generate etcd configuration for etcd
+  sudo: true
+  template:
+    src: "flannel-config.json"
+    dest: "/etc/flannel/config.json"
+
+- name: Insert flannel configuration into etcd
+  sudo: true
+  shell: 'cp {{ etcd_peer_key_file }} /tmp/etcd.key; cp {{ etcd_peer_cert_file }} /tmp/etcd.crt; curl -L --cacert "{{ etcd_peer_ca_file }}" --cert "/tmp/etcd.crt" --key "/tmp/etcd.key" "{{ etcd_hosts[0] }}/v2/keys{{ flannel_etcd_key }}/config" -XPUT --data-urlencode value@/etc/flannel/config.json; rm -f /etc/etcd.key /etc/etcd.crt'
+  when: openshift.common.use_flannel | bool

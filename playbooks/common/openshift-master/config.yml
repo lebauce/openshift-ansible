@@ -21,6 +21,7 @@
           hostname: "{{ openshift_hostname | default(None) }}"
           public_hostname: "{{ openshift_public_hostname | default(None) }}"
           deployment_type: "{{ openshift_deployment_type }}"
+          use_flannel: "{{ openshift_use_flannel | default(None) }}"
       - role: master
         local_facts:
           api_port: "{{ openshift_master_api_port | default(None) }}"
@@ -220,6 +221,16 @@
     when: deployment_type in ['enterprise','openshift-enterprise','origin']
   - role: openshift_cluster_metrics
     when: openshift.common.use_cluster_metrics | bool
+
+- name: Configure flannel
+  hosts: oo_first_master
+  vars:
+    etcd_urls: "{{ openshift.master.etcd_urls }}"
+  roles:
+  - role: flannel_register
+    when: openshift.common.use_flannel | bool
+  - role: flannel
+    when: openshift.common.use_flannel | bool
 
 # Additional instance config for online deployments
 - name: Additional instance config
