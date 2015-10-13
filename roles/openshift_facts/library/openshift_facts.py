@@ -301,6 +301,23 @@ def set_fluentd_facts_if_unset(facts):
             facts['common']['use_fluentd'] = use_fluentd
     return facts
 
+def set_flannel_facts_if_unset(facts):
+    """ Set flannel facts if not already present in facts dict
+            dict: the facts dict updated with the flannel facts if
+            missing
+        Args:
+            facts (dict): existing facts
+        Returns:
+            dict: the facts dict updated with the flannel
+            facts if they were not already present
+
+    """
+    if 'common' in facts:
+        if 'use_flannel' not in facts['common']:
+            use_flannel = False
+            facts['common']['use_flannel'] = use_flannel
+    return facts
+
 def set_node_schedulability(facts):
     """ Set schedulable facts if not already present in facts dict
         Args:
@@ -781,6 +798,7 @@ class OpenShiftFacts(object):
         facts['current_config'] = get_current_config(facts)
         facts = set_url_facts_if_unset(facts)
         facts = set_fluentd_facts_if_unset(facts)
+        facts = set_flannel_facts_if_unset(facts)
         facts = set_node_schedulability(facts)
         facts = set_metrics_facts_if_unset(facts)
         facts = set_identity_providers_if_unset(facts)
