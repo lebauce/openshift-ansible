@@ -3,7 +3,8 @@
   hosts: oo_masters_to_config
   pre_tasks:
   - name: Check for RPM generated config marker file .config_managed
-    stat: /etc/origin/.config_managed
+    stat:
+      path: /etc/origin/.config_managed
     register: rpmgenerated_config
 
   - name: Remove RPM generated config files if present
