@@ -60,7 +60,7 @@
   register: install_result
 
 - name: Check for RPM generated config marker file /etc/origin/.config_managed
-  stat: path=/etc/origin/.rpmgenerated
+  stat: path=/etc/origin/.config_managed
   register: rpmgenerated_config
 
 - name: Remove RPM generated config files
@@ -71,7 +71,7 @@
   with_items:
     - "{{ openshift.common.config_base }}/master"
     - "{{ openshift.common.config_base }}/node"
-    - "{{ openshift.common.config_base }}/.rpmgenerated"
+    - "{{ openshift.common.config_base }}/.config_managed"
 
 # TODO: These values need to be configurable
 - name: Set dns facts
