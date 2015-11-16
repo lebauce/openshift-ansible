@@ -1,0 +1,3 @@
+---
+- include: openstack.yml
+  when: "'provider' in openshift and openshift.provider.name == 'openstack'"

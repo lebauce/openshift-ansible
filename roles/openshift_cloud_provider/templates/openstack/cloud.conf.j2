@@ -1,0 +1,8 @@
+[Global]
+auth-url = {{ ocp_os_auth_url }}
+username = {{ ocp_os_username }}
+password = {{ ocp_os_password }}
+tenant-id = {{ ocp_os_tenant_id }}
+{% if ocp_os_region %}
+region = {{ ocp_os_region }}
+{% endif %}
