@@ -1,0 +1,5 @@
+- name: Create /etc/cloud.conf
+  template:
+    dest: /etc/cloud.conf
+    src: openstack/cloud.conf.j2
+  when: ocp_os_auth_url and ocp_os_username and ocp_os_password and (ocp_os_tenant_id or ocp_os_tenant_name)
