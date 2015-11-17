@@ -66,6 +66,14 @@
         {{ param_key }}: {{ param_value }}
 {% endfor %}
 {% endif %}
+{% elif identity_provider.kind == 'KeystonePasswordIdentityProvider' %}
+      domainName: {{ identity_provider.domainName }}
+      url: {{ identity_provider.url }}
+{% for key in ('ca', 'certFile', 'keyFile') %}
+{% if key in identity_provider %}
+      {{ key }}: "{{ identity_provider[key] }}"
+{% endif %}
+{% endfor %}
 {% endif %}
 {% endmacro %}
 oauthConfig:
