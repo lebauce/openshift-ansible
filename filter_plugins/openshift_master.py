@@ -452,6 +452,25 @@ class GitHubIdentityProvider(IdentityProviderOauthBase):
         self._optional += [['organizations']]
 
 
+class KeystonePasswordIdentityProvider(IdentityProviderBase):
+    """ KeystonePasswordIdentityProvider
+
+        Attributes:
+
+        Args:
+            api_version(str): OpenShift config version
+            idp (dict): idp config dict
+
+        Raises:
+            AnsibleFilterError:
+    """
+    def __init__(self, api_version, idp):
+        IdentityProviderBase.__init__(self, api_version, idp)
+        self._allow_additional = False
+        self._required += [['url'], ['domainName', 'domain_name']]
+        self._optional += [['ca'], ['certFile', 'cert_file'], ['keyFile', 'key_file']]
+
+
 class FilterModule(object):
     ''' Custom ansible filters for use by the openshift_master role'''
 
