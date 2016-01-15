@@ -1,0 +1,10 @@
+---
+os_auth_url: "{{ lookup('env', 'OS_AUTH_URL') }}"
+os_username: "{{ lookup('env', 'OS_USERNAME') }}"
+os_password: "{{ lookup('env', 'OS_PASSWORD') }}"
+os_tenant_name: "{{ lookup('env', 'OS_TENANT_NAME') }}"
+os_region: "{{ lookup('env', 'OS_REGION_NAME') }}"
+osc_volume_num_start: 1
+osc_number_of_volumes: 1
+osc_volume_prefix: openshift-volume-
+osc_volume_size: 1
