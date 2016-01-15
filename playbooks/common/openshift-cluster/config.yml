@@ -27,7 +27,7 @@
 
 - include: ../openshift-etcd/config.yml
 
-- include: ../openshift-nfs/config.yml
+- include: ../openshift-storage/config.yml
 
 - include: ../openshift-master/config.yml
 

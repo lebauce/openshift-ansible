@@ -1,0 +1,16 @@
+---
+- name: Setup RDO repositories
+  yum: name=https://rdoproject.org/repos/rdo-release.rpm state=present
+  when: deployment_type == 'origin'
+
+- name: Install Nova and Cinder clients
+  yum: name=python-novaclient,python-cinderclient state=present
+
+- name: Create the Openstack volumes
+  openshift_storage_openstack:
+    username: "{{ os_username }}"
+    auth_url: "{{ os_auth_url }}"
+    password: "{{ os_password }}"
+    tenant: "{{ os_tenant_name }}"
+    volume_name: "{{ osc_volume_name if (osc_volume_name is defined and osc_number_of_volumes == 1) else osc_volume_prefix + '-' + item }}"
+  with_sequence: start={{osc_volume_num_start}} count={{osc_number_of_volumes}} format=%04d
