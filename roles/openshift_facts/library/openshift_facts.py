@@ -1586,6 +1586,9 @@ class OpenShiftFacts(object):
                         nfs=dict(
                             directory='/exports',
                             options='*(rw,root_squash)'),
+                        openstack=dict(
+                            fs='ext4',
+                            volumeID='123'),
                         host=None,
                         access_modes=['ReadWriteMany'],
                         create_pv=True

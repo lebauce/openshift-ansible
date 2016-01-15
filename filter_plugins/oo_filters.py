@@ -691,6 +691,21 @@ class FilterModule(object):
                                         server=host,
                                         path=path)))
                             persistent_volumes.append(persistent_volume)
+                        elif kind == 'openstack':
+                            volume = hostvars['openshift']['hosted'][component]['storage']['volume']['name']
+                            size = hostvars['openshift']['hosted'][component]['storage']['volume']['size']
+                            access_modes = hostvars['openshift']['hosted'][component]['storage']['access_modes']
+                            fs = hostvars['openshift']['hosted'][component]['storage']['openstack']['fs']
+                            volume_id = hostvars['openshift']['hosted'][component]['storage']['openstack']['volumeID']
+                            persistent_volume = dict(
+                                name="{0}-volume".format(volume),
+                                capacity=size,
+                                access_modes=access_modes,
+                                storage=dict(
+                                    cinder=dict(
+                                        fsType=fs,
+                                        volumeID=volume_id)))
+                            persistent_volumes.append(persistent_volume)
                         else:
                             msg = "|failed invalid storage kind '{0}' for component '{1}'".format(
                                 kind,
