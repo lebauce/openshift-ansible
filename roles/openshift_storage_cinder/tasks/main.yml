@@ -1,0 +1,17 @@
+---
+- name: Setup RDO repositories
+  yum: name=https://rdoproject.org/repos/rdo-release.rpm state=present
+
+- name: Install Nova and Cinder clients
+  yum: name=python-novaclient,python-cinderclient state=present
+
+- name: Create the cinder volume creation script
+  template:
+    dest: /usr/bin/create-openshift-cinder-volume
+    src: create-openshift-cinder-volume.j2
+    mode: 0755
+
+- name: Create and format cinder volumes
+  shell: >
+    /usr/bin/create-openshift-cinder-volume --auth_url={{ os_auth_url }} --username={{ os_username }} --password={{ os_password }} --tenant={{ os_tenant_name }} --volume_name={{ osc_volume_prefix }}-{{ item }}
+  with_sequence: start={{osc_volume_num_start}} count={{osc_number_of_volumes}} format=%04d

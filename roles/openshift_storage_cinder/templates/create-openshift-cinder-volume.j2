@@ -1,0 +1,224 @@
+#!/usr/bin/python
+
+import argparse
+import time
+import os
+import subprocess
+import tempfile
+import urllib2
+import json
+import yaml
+
+from novaclient.client import Client
+
+parser = argparse.ArgumentParser(
+    description='Creates a Cinder volume to be used by Openshift.')
+
+parser.add_argument('--auth_url', metavar='URL', type=str,
+                    required=True,
+                    help='Openstack authentication URL')
+
+parser.add_argument('--username', metavar='username', type=str,
+                    required=True,
+                    help='username to use for authentication')
+
+parser.add_argument('--password', metavar='password', type=str,
+                    required=True,
+                    help='password to use for authentication')
+
+parser.add_argument('--tenant', metavar='tenant', type=str,
+                    required=True,
+                    help='tenant name to use for authentication')
+
+parser.add_argument('--endpoint_url', metavar='endpoint_url', type=str,
+                    help='Override the catalog endpoint.')
+
+parser.add_argument('--endpoint_type', metavar='endpoint_type', type=str,
+                    default="publicURL",
+                    help='Endpoint type in the catalog request. '
+                    + 'Public by default.')
+
+parser.add_argument('--force_delete', action='store_true',
+                    help='If matching volumes are found, delete them and add '
+                    + 'a notification in the message instead of getting out '
+                    + 'in critical state.')
+
+parser.add_argument('--api_version', metavar='api_version', type=str,
+                    default='2',
+                    help='Version of the API to use. 1 by default.')
+
+parser.add_argument('--timeout', metavar='timeout', type=int,
+                    default=120,
+                    help='Max number of second to create/delete a volume '
+                    + '(120 by default).')
+
+parser.add_argument('--volume_name', metavar='volume_name', type=str,
+                    help='Name of the volume to create')
+
+parser.add_argument('--volume_size', metavar='volume_size', type=int,
+                    default=1,
+                    help='Size of the volume to create (1 GB by default)')
+
+parser.add_argument('--volume_type', metavar='volume_type', type=str,
+                    default=None,
+                    help='With multiple backends, choose the volume type.')
+
+parser.add_argument('--filesystem', metavar='filesystem', type=str,
+                    default='ext4',
+                    help='Filesystem to use when formatting volume')
+
+parser.add_argument('--server', metavar='server', type=str,
+                    help='UUID of the server')
+
+parser.add_argument('--availability_zone', metavar='availability_zone',
+                    type=str,
+                    default=None,
+                    help='Specify availability zone.')
+
+parser.add_argument('--verbose', action='count',
+                    help='Print requests on stderr.')
+
+args = parser.parse_args()
+
+if not args.server:
+    response = urllib2.urlopen('http://169.254.169.254/openstack/latest/meta_data.json')
+    args.server = json.load(response)['uuid']
+
+client = Client(args.api_version,
+                username=args.username,
+                project_id=args.tenant,
+                api_key=args.password,
+                auth_url=args.auth_url,
+                endpoint_type=args.endpoint_type,
+                http_log_debug=args.verbose)
+
+conf = {'display_name': args.volume_name,
+        'size': args.volume_size}
+
+if args.volume_type:
+    conf['volume_type'] = volume_type
+
+if args.availability_zone:
+    conf['availability_zone'] = availability_zone
+
+# Create the volume
+volume = client.volumes.create(**conf)
+
+# Wait for the volume to be available
+timer = 0
+while volume.status != "available":
+    if timer >= args.timeout:
+        break
+    time.sleep(1)
+    timer += 1
+    volume.get()
+
+# Attach the volume to the VM
+attachment = client.volumes.create_server_volume(args.server, volume.id)
+
+# Wait for the device to show up
+timer = 0
+device = ""
+while not device:
+    for dev in os.listdir("/dev/disk/by-id"):
+        if volume.id[:8] in dev:
+            device = "/dev/disk/by-id/" + dev
+            break
+
+    if device:
+        break
+
+    if timer >= args.timeout:
+        break
+
+    time.sleep(1)
+    timer += 1
+
+# Format the volume, mount it, set its mode to 777
+# then unmount it
+tmpdir = tempfile.mkdtemp()
+subprocess.call(["mkfs." + args.filesystem, device])
+subprocess.call(["mount", device, tmpdir])
+subprocess.call(["chmod", "-R", "777", tmpdir])
+subprocess.call(["umount", tmpdir])
+os.rmdir(tmpdir)
+
+# In some cases, the volume status hasn't been updated yet
+# so trying to detach it throws an error. To avoid it, we wait
+# for the status to have been updated
+timer = 0
+while True:
+    volume = client.volumes.get(volume.id)
+    if volume.status == "in-use":
+        break
+
+    if timer >= args.timeout:
+        break
+
+    time.sleep(1)
+    timer += 1
+
+# Detach the volume
+client.volumes.delete_server_volume(args.server, attachment.id)
+
+# Wait for the volume to be detached
+timer = 0
+while True:
+    try:
+        client.volumes.get_server_volume(args.server, attachment.id)
+    except:
+        break
+
+    if timer >= args.timeout:
+        break
+
+    time.sleep(1)
+    timer += 1
+
+# Create persistent volume
+
+pvdef = {
+    "apiVersion": "v1",
+    "kind": "PersistentVolume",
+    "metadata": {
+        "name": args.volume_name
+    },
+    "spec": {
+        "capacity": {
+            "storage": "%dGi" % args.volume_size
+        },
+        "accessModes": [ "ReadWriteOnce" ],
+        "cinder": {
+            "fsType": args.filesystem,
+            "volumeID": str(volume.id)
+        }
+    }
+}
+
+pvfile = tempfile.mkstemp()[1]
+yaml.dump(pvdef, open(pvfile, "w"))
+subprocess.call(["oc", "create", "-f", pvfile])
+os.unlink(pvfile)
+
+# Create persistent volume claim
+pvcdef = {
+    "kind": "PersistentVolumeClaim",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "claim-" + args.volume_name,
+    },
+    "spec": {
+        "accessModes": [ "ReadWriteOnce" ],
+        "resources": {
+            "requests": {
+                "storage": "%dGi" % args.volume_size
+            }
+        }
+    }
+}
+
+pvcfile = tempfile.mkstemp()[1]
+yaml.dump(pvcdef, open(pvcfile, "w"))
+subprocess.call(["oc", "create", "-f", pvcfile])
+os.unlink(pvcfile)
+

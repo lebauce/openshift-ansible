@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Sylvain Baubeau
+  description: Create Openstack Cinder volumes and use them as openshift persistent volumes.
+  company: Red Hat, Inc.
+  license: license (Apache)
+  min_ansible_version: 1.4
+  platforms:
+  - name: EL
+    versions:
+    - 7
+  - name: Fedora
+    versions:
+    - all
+  categories:
+    - openshift
